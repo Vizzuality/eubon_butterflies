@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Leaflet example | CartoDB.js</title>
+    <title>Butterfly prototype</title>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
     <link rel="shortcut icon" href="http://cartodb.com/assets/favicon.ico" />
@@ -26,15 +26,26 @@
 
         L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map, 1);
 
+        // cartodb.createLayer(map, {user_name: 'benlaken', type: 'cartodb', sublayers: [{
+        //                     sql: "SELECT st_centroid(CDB_RectangleGrid(ST_Expand(st_transform(st_setsrid(st_geomfromgeojson('{\"type\":\"Polygon\",\"coordinates\":[[[-43.9453125,32.84267363195431],[50.2734375,32.84267363195431],[50.2734375,59.88893689676585],[-43.9453125,59.88893689676585],[-43.9453125,32.84267363195431]]]}'),4326),3857), CDB_XYZ_Resolution(4)*12), CDB_XYZ_Resolution(4)*12,CDB_XYZ_Resolution(4)*12)) as the_geom_webmercator",
+        //                     cartocss: "#layer {marker-width: 7; marker-fill:#EDEF5D; line-width: 1; line-color: #FFF; line-opacity: 1;} "
+        //                   }]})
+        //                     .addTo(map)
+
         cartodb.createLayer(map, {user_name: 'benlaken', type: 'cartodb', sublayers: [{
-                            sql: "SELECT st_centroid(CDB_RectangleGrid(ST_Expand(st_transform(st_setsrid(st_geomfromgeojson('{\"type\":\"Polygon\",\"coordinates\":[[[-43.9453125,32.84267363195431],[50.2734375,32.84267363195431],[50.2734375,59.88893689676585],[-43.9453125,59.88893689676585],[-43.9453125,32.84267363195431]]]}'),4326),3857), CDB_XYZ_Resolution(4)*12), CDB_XYZ_Resolution(4)*12,CDB_XYZ_Resolution(4)*12)) as the_geom_webmercator",
-                            cartocss: "#layer {marker-fill:#EDEF5D; line-width: 1; line-color: #FFF; line-opacity: 1;} "
-                          }]})
+                            legends: true,
+                            sql: "SELECT * FROM butterfly_sanitized  WHERE species = 1 AND year > 1999 AND year < 2006;",
+                            cartocss: '#butterfly_sanitized {marker-width: 7; marker-fill: #FFB927; marker-fill-opacity: 0.9;marker-allow-overlap: true;marker-line-width: 1; marker-line-color: #FFF; marker-line-opacity: 1;}'}]})
                             .addTo(map)
+                            .done(function(layer){
+                              //do stuff
+                              console.log('legends active :'+ layer.options.legends);
+                              console.log("Test print after layer loaded")
+                            });
 
         cartodb.createLayer(map, {user_name: 'benlaken', type: 'cartodb', sublayers: [{
                             sql: "SELECT * FROM butterfly_sanitized  WHERE species = 1 AND year > 2009 AND year < 2016;",
-                            cartocss: '#butterfly_sanitized {marker-fill: #7FFFD4;}'}]})
+                            cartocss: '#butterfly_sanitized {marker-width: 7; marker-fill: #7FFFD4; marker-fill-opacity: 0.9;marker-allow-overlap: true;marker-line-width: 1; marker-line-color: #FFF; marker-line-opacity: 1;}'}]})
                             .addTo(map)
 
 
