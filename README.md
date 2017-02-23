@@ -36,8 +36,8 @@ The components of this visualisation are:
 1. Feed of most recent observations in GBIF database for relevant butterfly species:
   * Using the RESTFUL API of GBIF, we can request butterfly data for the species we desire, over Europe,
   which contains photos, and display the most recent observations only, to assist in building the narrative of this being a project based in citizen science.
-1. National level summary statistics.
-  * Country level counts of observations over time per species, and also averages over the EuroLST data.
+1. National level summary statistics displayed as a widget.
+  * Country level counts of observations over time (2000-2004, 2005-2008, 2009-2012, 2013-2016) per species, and also averages over the EuroLST data per country for the same times.
 
 
 ## 1. Map
@@ -59,6 +59,40 @@ CARTO API GET request:
 ```html
 https://benlaken.carto.com/api/v2/sql/?q=SELECT count(species), species FROM butterfly_sanitized WHERE st_intersects(the_geom, ST_Buffer(st_setsrid(ST_point(-0.032958984375, 51.5429188223739),4326), 0.5)) AND year > 2009 AND year < 2016  group by species
 ```
+
+This will return JSON in the form of:
+
+```json
+{
+  "rows": [
+    {
+      "count": 3,
+      "species": 1
+    },
+    {
+      "count": 2,
+      "species": 2
+    },
+    {
+      "count": 8,
+      "species": 3
+    }
+  ],
+  "time": 0.09,
+  "fields": {
+    "count": {
+      "type": "number"
+    },
+    "species": {
+      "type": "number"
+    }
+  },
+  "total_rows": 3
+}
+```
+
+The count, per species is what should be displayed. A separate call needs to be made to Carto to retrieve the temperature from EuroLST over the same area.
+**EXAMPLE of this to be added...**
 
 
 ## 3. Recent butterfly observation Feed
@@ -119,7 +153,7 @@ http://www.gbif.org/occurrence/1415672278/fragment
 
 Note, we are only returning observations that contain images, as these will be displayed on the website, as a means of highlighting the citizen science narrative.
 
-
+Also, may be of use, it seems the EUBON website is digesting the same info at [this website](http://api.eurogeoss-broker.eu/eu-bon-portal). It may be helpful to look at the website code and see how they call the API to extract the records first.
 
 ## 4. National Level Statistics
 
@@ -130,7 +164,7 @@ The [GBIF API](http://www.gbif.org/developer/occurrence#p_taxonKey) will enable 
 Alternatively, and perhaps better for us, we can make SQL queries to the data in Carto, and return statistics over specified country geometries, for both the butterfly observations, and the EuroLST basemaps which we will upload.
 
 
-## Processing raw GBIF data
+## Notes for processing raw GBIF data
 
 The raw observation data of three species of butterfly are processed to make the files smaller,
 condescend into one file, and uploaded to a Carto account.
@@ -145,19 +179,16 @@ E.g. converting the file `0060414-160910150852091.csv` to `butterfly_1.csv` as b
 `python prepare_gbif.py 0060414-160910150852091.csv butterfly_1.csv`
 
 
-## Processing EuroLST data
+## Notes for processing EuroLST data
 
 ** IN PROGRESS**
 
-The basemaps of EuroLST are also made lightweight (as each raw file is ~750mb), and uploaded to a carto account. We have applied several steps to do minify the data:
+The basemaps of EuroLST must be made lightweight (as each raw file is ~750mb). It should then be uploaded to a Carto account and used as a raster layer.
 
-We remap the values between 1--256,
-setting 0 as the missing value. Then compress the data with lzw compression, and convert to 8-bit integers.
-This minified data is then uploaded to Carto as raw data.
+* Remap values between 1--256,setting 0 as the missing value. and convert to 8-bit integers.
+* LZW compression.
 
-The basemaps and vectors are then requested and mapped Cartodb.js.
-
-I will need to minify the Eurolst data. A script to compress these data is in the `eurolst_process` folder. At the moment it is crude, and under development. It can be run via `python main.py`.
+A script to compress these data is in the `eurolst_process` folder. At the moment it is crude, and under development. It can be run via `python main.py`.
 
 
 ## Stretch Goal: Extending the visualisation with Species Distribution model raster layers
