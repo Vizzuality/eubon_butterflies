@@ -5,11 +5,16 @@
 
 This project is designed to showcase the [EuroLST data](http://www.geodati.fmach.it/eurolst.html),
 using the narrative of butterfly observations across Europe. We will need to show several maps from Euro LST data as basemaps, and overlay vectors based on
-butterfly observations from [GBIF](http://www.gbif.org).
+butterfly observations from [GBIF](http://www.gbif.org). We can make these data comparable (at least in a qualitative manner) in both space (i.e. across areas or national averages) and time (i.e. over temporal bins of 4 years) by calculating **relative proportions**: *i.e. for each area we can calculate the relative percentage of butterfly seen that were of a given type*.
+
+E.g. If a given area shows 10 observations, 5 of butterfly type 1, 3 of butterfly type 2, and 2 of butterfly type 3, then the relative abundance is 50%, 30% and 20% respectively. Doing this will enable us to generalise over time and space, despite the widely different sampling frequency. (The only difference a higher-sampling frequency will have, is to increase the accuracy of the estimate.)
+
+Aggregated, this data should show 1) how relative abundance changes in space, and 2) if changes in relative abundance have occurred in time (during the last 16 years of EurLST data for which we will construct co-temporal analysis). We will also show for the area averaged abundance the temperature anomaly detected from EurLST over this time.
+
 
 Features to note:
-* Observer effect: A strong country dependence is evident in the data, which cannot be corrected, and relates to prevalence of observers in different countries. These data therefore are currently only useful as qualitative indicators, and tell a storm mainly of the prevalence of citizen science.
-* Variability: (In temperature data) we will try to minimise this volatility by presenting data in 4-year blocks. This will also help with scarcity of butterfly observations.
+* Observer effect: A strong country dependence is evident in the data, which relates to prevalence of observers in different countries. These raw data  mainly of the prevalence of citizen science, and must be turned in to relative abundance before being compared in time and space.
+* Variability: (In temperature data) we will try to minimise this volatility by presenting data in 4-year blocks. This will also help with scarcity of butterfly observations, and the considerable size of the EurLST data.
 * Trends: Actual trends in population range may occur with changes in climate, as insects respond rapidly to environmental change. The data may indeed reflect this, but we should note the qualitative nature of this association due to the limits of interpreting these data.
 
 We will use three different butterfly species:
@@ -17,8 +22,6 @@ We will use three different butterfly species:
 * [Vanessa Atalanta Linnaeus, 1758](http://www.gbif.org/species/1898286): taxonomy code 1898286, category 1 in the Carto table
 * [Vanessa Pieris Napi (Linnaeus, 1758)](http://www.gbif.org/species/1920494): taxonomy code 1920494, category 2 in the Carto table
 * [Vanessa Pieris Brassicae (Linnaeus, 1758)](http://www.gbif.org/species/1920506): taxonomy code 1920506, category 3 in the Carto table
-
-
 
 
 
@@ -91,8 +94,9 @@ This will return JSON in the form of:
 }
 ```
 
-The count, per species is what should be displayed. A separate call needs to be made to Carto to retrieve the temperature from EuroLST over the same area.
-**EXAMPLE of this to be added...**
+The count, per species should be converted to percentages before display. A separate call needs to be made to Carto to retrieve the temperature from EuroLST over the same area.
+
+**Futher EXAMPLE of this to be added...**
 
 
 ## 3. Recent butterfly observation Feed
