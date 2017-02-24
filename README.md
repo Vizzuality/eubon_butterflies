@@ -39,7 +39,7 @@ The components of this visualisation are:
   * Using the RESTFUL API of GBIF, we can request butterfly data for the species we desire, over Europe,
   which contains photos, and display the most recent observations only, to assist in building the narrative of this being a project based in citizen science.
 1. National level summary statistics displayed as a widget.
-  * Country level counts of observations over time (2000-2004, 2005-2008, 2009-2012, 2013-2016) per species, and also averages over the EuroLST data per country for the same times.
+  * Country level relative abundance of observations over time (2000-2004, 2005-2008, 2009-2012, 2013-2016) per species, and also averages over the EuroLST data per country for the same times.
 
 
 ## 1. Map
