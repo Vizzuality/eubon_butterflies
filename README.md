@@ -34,8 +34,7 @@ The components of this visualisation are:
   Thus 4 year temperature anomalies, with 4-year groupings of butterfly observations could work well.
   Covering periods of 200-2004, 2005-2008, 2008-2012, 2012-206.
 1. Map Widget:
-  * User clicks on the map can return a widget displaying counts of a given species over a buffered area,
-  surrounding the click. This could be compared qualitatively to values from the EurLST base-map.
+  * User clicks on the map can return a widget displaying relative abundance of a given species over a buffered area, or nation, and also average EurLST base-map temperature anomalies for the same area.
 1. Feed of most recent observations in GBIF database for relevant butterfly species:
   * Using the RESTFUL API of GBIF, we can request butterfly data for the species we desire, over Europe,
   which contains photos, and display the most recent observations only, to assist in building the narrative of this being a project based in citizen science.
