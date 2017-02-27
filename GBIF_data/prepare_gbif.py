@@ -29,7 +29,8 @@ def process_table(df):
     yr = [y.year for y in t]
     name = df_eu.nameComplete[0]
     if name in name_to_number:
-        species = name_to_number[name] * len(df_eu)
+        print("{0} is category {1}".format(name, name_to_number[name]))
+        species = [name_to_number[name]] * len(df_eu)
     else:
         raise ValueError("Butterfly Name was not in dictionary of classifcation")
     df_eu = df_eu.drop(['occurrenceid', 'date', 'nameComplete'], axis=1)
@@ -65,6 +66,7 @@ if __name__ == '__main__':
     output_file = "output.csv"
     print(len(sys.argv[1:])," input files: ", sys.argv[1:])
     big_df = extract_data(input_files)
+    big_df = big_df[big_df['year'] > 1997] # Strip out old data not needed
     if os.path.isfile(output_file):
         print("{outfile} exists. Overwriting file.".format(outfile=output_file))
     big_df.to_csv(output_file, index=False)
