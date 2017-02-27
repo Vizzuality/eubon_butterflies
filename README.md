@@ -3,7 +3,7 @@
 
 ### Summary
 
-This project is designed to showcase the [EuroLST data](http://www.geodati.fmach.it/eurolst.html),
+We designed this project to showcase the [EuroLST data](http://www.geodati.fmach.it/eurolst.html),
 using the narrative of butterfly observations across Europe. We will need to show several maps from Euro LST data as basemaps, and overlay vectors based on
 butterfly observations from [GBIF](http://www.gbif.org). We can make these data comparable (at least in a qualitative manner) in both space (i.e. across areas or national averages) and time (i.e. over temporal bins of 4 years) by calculating **relative proportions**: *i.e. for each area we can calculate the relative percentage of butterfly seen that were of a given type*.
 
@@ -22,7 +22,11 @@ We will use three different butterfly species:
 * [Vanessa Atalanta Linnaeus, 1758](http://www.gbif.org/species/1898286): taxonomy code 1898286, category 1 in the Carto table
 * [Vanessa Pieris Napi (Linnaeus, 1758)](http://www.gbif.org/species/1920494): taxonomy code 1920494, category 2 in the Carto table
 * [Vanessa Pieris Brassicae (Linnaeus, 1758)](http://www.gbif.org/species/1920506): taxonomy code 1920506, category 3 in the Carto table
-
+* [Nymphalis xanthomelas](http://www.gbif.org/species/5130587) taxonomy code 5130587, category 4 in the Carto table
+* [Vanessa cardui](http://www.gbif.org/species/4299368): taxonomy code 4299368, category 5 in Carto table
+* [Araschnia levana Linneaus, 1758](http://www.gbif.org/species/1902533) taxonomy code 1902533, category 6 in the Carto table
+* [Apatura ilia Denis & Schiffermüller, 1775](http://www.gbif.org/species/8138711) taxonomy code 8138711, category 7 in the Carto table
+* [Apatura iris Linnaeus, 1758](http://www.gbif.org/species/5131910) taxonomy code 5131910, category 8 in the Carto table
 
 
 ## visualisation components

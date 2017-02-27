@@ -55,7 +55,7 @@ def main():
                                             oldMin=minval, missing_value = missing))
     output_array = np.array(converted_vectors)
     data_type = 'uint8'   #rasterio.int16 #uint16
-    profile.update(dtype=data_type, count=1, compress='lzw')
+    profile.update(dtype=data_type, count=1, compress='lzw', nodata=0,)
     with rasterio.open(output_file, 'w', **profile) as dst:
         dst.write(output_array.astype(data_type), 1)
     sucess_summary(input_file, output_file)
