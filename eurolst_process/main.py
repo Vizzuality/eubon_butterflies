@@ -2,7 +2,9 @@ from __future__ import print_function, division
 import time
 from os.path import basename, dirname, exists
 from hurry.filesize import size, alternative, verbose
+import numpy as np
 import os
+import time
 import copy
 import rasterio
 import numpy
@@ -10,6 +12,7 @@ import glob
 import argparse
 import pprint
 from colorama import Fore, Back, Style
+from tqdm import tqdm
 
 #
 # # variables
@@ -21,39 +24,47 @@ from colorama import Fore, Back, Style
 # colouring = ["3,3,3","3,4,5","5,5,6"]
 # hex_colouring = ["#ffffff","#ffffff","#ffffff"]
 
+
 def main():
+    start_time = time.clock()
     input_file = '/Users/Ben/Downloads/eurolst_clim/eurolst_clim.bio01.tif'
     output_file = './processed.tif'
-
     assert os.path.isfile(input_file), Fore.RED + "Input file {input} does not exist".format(input=input_file)
     if os.path.isfile(output_file):
         print(Fore.RED + "{output} already exists and will be overwritten.".format(output=output_file))
     print(Style.RESET_ALL)
-
     with rasterio.open(input_file) as src:
         metadata = src.meta
         profile = src.profile
         image_array = src.read()
-
     print('PROFILE: ', profile,'\n')
-    print('METADATA: ', metadata,'\n')
-
+    #print('METADATA: ', metadata,'\n')
     if len(image_array.shape) > 2:
-        print('Array has size of {0}, bands = {1}'.format(image_array.shape, profile['count']))
+        print('Array size of {0}, bands = {1}'.format(image_array.shape,profile['count']))
         print("Slicing single band from image array")
         image_array = image_array[0]
     print('IMAGE SHAPE AFTER SLICE:', image_array.shape)
-
-    data_type = rasterio.int16 #uint16
+    #  ----  Convert to int8 value range -----
+    missing = profile['nodata']
+    maxval = image_array[image_array != missing].max()
+    minval = image_array[image_array != missing].min()
+    conversion = np.vectorize(convert_value)
+    converted_vectors = []
+    for row in tqdm(range(len(image_array[:,0]))):
+        converted_vectors.append(conversion(image_array[row,:], oldMax=maxval,
+                                            oldMin=minval, missing_value = missing))
+    output_array = np.array(converted_vectors)
+    data_type = 'uint8'   #rasterio.int16 #uint16
     profile.update(dtype=data_type, count=1, compress='lzw')
-
     with rasterio.open(output_file, 'w', **profile) as dst:
-        dst.write(image_array.astype(data_type), 1)
-
+        dst.write(output_array.astype(data_type), 1)
     sucess_summary(input_file, output_file)
+    end_time = time.clock()
+    print('Ran in {0:4.2f}'.format(end_time-start_time))
     return
 
 def sucess_summary(input_file, output_file):
+    """Write sucess info to the terminal and calculate file size reduction"""
     print(Fore.GREEN + "Success! Converted {0} to {1}".format(input_file, output_file))
     old_filesize = os.path.getsize(input_file)
     new_filesize = os.path.getsize(output_file)
@@ -62,6 +73,28 @@ def sucess_summary(input_file, output_file):
     print("Diffrence = {0}".format(size(old_filesize - new_filesize, system=alternative)))
     print(Style.RESET_ALL)
     return
+
+
+def convert_value(oldValue, oldMax, oldMin, missing_value=None):
+    """
+    Convert a single input value into a new value between 1 to 255 to save
+    space. Missing data are set to 0 values. After this, the array can be saved
+    as int8 format to save space. This function should be vectorised before it
+    is applied:
+    oldMax and oldMin can be directly set to a physical range which you want to
+    be static. For example, if you want a range of -30 to +30 degrees, rather
+    than to use values from the array itself.
+    e.g. f = np.vectorize()
+    """
+    if missing_value != oldValue:
+        newMin = 1
+        newMax = 255
+        oldRange = oldMax - oldMin
+        newRange = newMax - newMin
+        newValue = (((oldValue - oldMin) * newRange) / oldRange) + newMin
+        return int(newValue)
+    elif missing_value == oldValue:
+        return(int(0))
 
 
 if __name__ == "__main__":
