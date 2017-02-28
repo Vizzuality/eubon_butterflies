@@ -15,15 +15,15 @@ Aggregated, this data should show 1) how relative abundance changes in space, an
 
 
 Features to note:
-* Observer effect: A strong country dependence is evident in the data, which relates to prevalence of observers in different countries. These raw data  mainly of the prevalence of citizen science, and must be turned in to relative abundance before being compared in time and space.
+* Observer effect: A strong country dependence is evident in the data, which relates to prevalence of observers in different countries. These raw data  mainly reflect where observers are, and so must be turned in to relative abundance before comparing in time and space.
 * Variability: (In temperature data) we will try to minimise this volatility by presenting data in 4-year blocks. This will also help with scarcity of butterfly observations, and the considerable size of the EurLST data.
-* Trends: Actual trends in population range may occur with changes in climate, as insects respond rapidly to environmental change. The data may indeed reflect this, but we should note the qualitative nature of this association due to the limits of interpreting these data.
+* Trends: Actual trends in population range may occur with changes in climate, as insects respond rapidly to environmental change. The data may indeed reflect this, but we should note the qualitative nature of this association due to the limits of interpreting these data. The trends may be distinct for butterflies that migrate vs those which do not (we have selected both types).
 
 ## Data
 
 ### Butterfly observations
 
-We will use observations of several different butterfly species:
+We will use observations of several different butterfly species, [prepared and loaded into a Carto table](https://benlaken.carto.com/dataset/butterfly_sightings):
 
 * [Vanessa Atalanta Linnaeus, 1758](http://www.gbif.org/species/1898286): taxonomy code 1898286, category 1 in the Carto table
 * [Vanessa Pieris Napi (Linnaeus, 1758)](http://www.gbif.org/species/1920494): taxonomy code 1920494, category 2 in the Carto table
@@ -40,27 +40,31 @@ We will use observations of several different butterfly species:
 Using the GBIF.org website, you can search for data by species occurrence, and download, in csv format, all observations relevant to the European region. Sample data are present in this repo in the GBIF folder.
 These raw data contain excessive information for our purposes, and since we need to ensure the data are optimised for size, we will reduce each entry down to simply decimallatitude, decimallongitude, date, year integer, and a category number to indicate species (see list above).
 
-This preparation is done by running the prepare_gbif.py script with a list of raw data files. E.g. `cd` to the GBIF_data folder, place any additional csv files downloaded from GBIF in that location, and run `python prepare_gbif.py *.csv`. This should produce `output.csv` which contains minified data from all input files.
+This preparation is done by running the `prepare_gbif.py` script with a list of raw data files. To do this, `cd` to the GBIF_data folder, place any additional csv files downloaded from GBIF in that location, and run `python prepare_gbif.py *.csv`. This should produce `output.csv` which contains minified data from all input files.
 
 **Note:** if you are adding a new species, not in the above list, you will need to add its scientific name and a unique category value (integer) to associate with it in the python dictionary in `prepare_gbif.py`.
 
 ### EuroLST (base-map data)
 
-We will use EuroLST as high-resolution temperature base maps. Uncompressed these data are approximately 750mb, which is too large for uploading to Carto and using easily as a tile server. We have created a simple script to reduce the filesize in `eurolst_process/main.py`. (*This software needs improvement, as is currently slow.*)
+We will use EuroLST as high-resolution temperature base maps. Uncompressed these data are  ~750mb, which is too large for uploading to Carto to use as a tile server. We have created a simple script to reduce the file size in `eurolst_process/main.py`. (*This software needs improvement, as is currently slow.*)
 
 ** Procedure is as follows**
 
-* Remap values between 1--255,setting 0 as the missing value. and convert data-type to 8-bit integers.
+* Remap values between 1--255, setting 0 as the missing value. and convert data-type to 8-bit integers.
 * Add LZW compression.
 
 ### Creation of National-level statistics table
 
-To create widgets that respond rapidly we should pre-calculate the national-level statistics. Currently, I intend the table to have the following format:
+** IN PROGRESS **
 
-| Country_code     | Year_group     | EuroLST| species_1| species_2 | ...|
-| :------------- | :------------- |:------------- | :------------- |:------------- |
-| ENG      | 2000       | 0.80 | 1000 | 300 | ... |
-| ENG      | 2004       | 0.95 | 1100 | 310 | ... |
+To create widgets that respond rapidly we should pre-calculate the national-level statistics. I intend the table to roughly have the following format:
+
+
+ Country_code     | Year_group     | EuroLST| species_1| species_2
+------------- | ------------- | ------------- | -------------
+ENG      | 2000       | 0.80 | 1000 | 300
+ENG      | 2004       | 0.95 | 1100 | 310
+
 
 The table will be uploaded to Carto. Note, the values will be in counts, and must be converted to
 relative abundance on the front-end, based on the species the user has requested. (i.e. if only two species are requested then relative abundance would be calculated, e.g. for species_1 as relAbundanceSpecies1=species_1/(speces_1 + species_2) * 100.
@@ -88,18 +92,18 @@ The components of this visualisation are:
 
 We have created a small prototype version of a map using Carto.js to expose butterfly and EuroLST example data, leaving examples of the settings that can be used to build the website.
 
-* Python server: cd into `./simple_server` and execute `./start.sh`. The map should be viewable at [http://0.0.0.0:8000](http://0.0.0.0:8000).
+* Python server: cd into `./simple_server` and execute `./start.sh`. The map should be viewable at [http://0.0.0.0:8000](http://0.0.0.0:8000). Alternativley, you can view a [version running on bl.ocks.org](http://bl.ocks.org/benlaken/9fc0db2e992a24267a5bc48936d9e926).
 
 ## 2. Map Widget
 
 If the decimal latitude and longitude can be passed to ST_POINT() function, with a given buffer (in decimal degrees), the following API call will return JSON containing the counts per species seen over a given area in a given time-period, which can be used to create a simple widget for display.
 
-Note below, Lat = -0.032958984375, Lon = 51.5429188223739), and the buffer = 0.5. Also note the user account (below = benlaken) and table name (below = butterfly_sanitized) may be different.
+Note below, Lat = -0.032958984375, Lon = 51.5429188223739), and the buffer = 0.5. Also note the user account (below = benlaken) and table name (below = butterfly_sightings) may be different.
 
 CARTO API GET request:
 
 ```html
-https://benlaken.carto.com/api/v2/sql/?q=SELECT count(species), species FROM butterfly_sanitized WHERE st_intersects(the_geom, ST_Buffer(st_setsrid(ST_point(-0.032958984375, 51.5429188223739),4326), 0.5)) AND year > 2009 AND year < 2016  group by species
+https://benlaken.carto.com/api/v2/sql/?q=SELECT count(species), species FROM butterfly_sightings WHERE st_intersects(the_geom, ST_Buffer(st_setsrid(ST_point(-0.032958984375, 51.5429188223739),4326), 0.5)) AND year > 2009 AND year < 2016  group by species
 ```
 
 This will return JSON in the form of:
@@ -133,14 +137,12 @@ This will return JSON in the form of:
 }
 ```
 
-The count, per species should be converted to percentages before display. A separate call needs to be made to Carto to retrieve the temperature from EuroLST over the same area.
-
-**Futher EXAMPLE of this to be added...**
+The count, per species should be converted to percentages before display. Returning temperature over the same area is more difficult, as the raster uploaded to Carto needs to be minified prior to use. Therefore EuroLST values will probably only be given at a national level (and will be precalculated).
 
 
 ## 3. Recent butterfly observation Feed
 
-To return the required data from GBIF API, we can construct requests as follows.
+If we wish to create a feed showing recent observations (with photos) of specific species sightings uploaded to GBIF we can do that via the GBIF API. We can construct requests as follows.
 
 * TAXON_KEY is the taxnomy code listed above.
 
@@ -204,7 +206,7 @@ Also, may be of use, it seems the EUBON website is digesting the same info at [t
 
 * Alternatively, and better for our use case, we can make SQL queries to the data in Carto, and return statistics over specified country geometries, for both the butterfly observations, and the EuroLST basemaps which we will upload in a single table.
 
-
+** In Progress **
 
 
 
