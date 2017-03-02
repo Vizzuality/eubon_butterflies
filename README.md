@@ -6,18 +6,21 @@
 ### Summary
 
 We designed this project to showcase the [EuroLST data](http://www.geodati.fmach.it/eurolst.html),
-using the narrative of butterfly observations across Europe. We will need to show several maps from Euro LST data as basemaps, and overlay vectors based on
-butterfly observations from [GBIF](http://www.gbif.org). We can make these data comparable (at least in a qualitative manner) in both space (i.e. across areas or national averages) and time (i.e. over temporal bins of 4 years) by calculating **relative proportions**: *i.e. for each area we can calculate the relative percentage of butterfly seen that were of a given type*.
-
-E.g. If a given area shows 10 observations, 5 of butterfly type 1, 3 of butterfly type 2, and 2 of butterfly type 3, then the relative abundance is 50%, 30% and 20% respectively. Doing this will enable us to generalise over time and space, despite the widely different sampling frequency. (The only difference a higher-sampling frequency will have, is to increase the accuracy of the estimate.)
+using the narrative of butterfly observations across Europe. We will need to use the Euro LST data as a basemap, and overlay vectors based on
+butterfly observations from [GBIF](http://www.gbif.org). We can make these data comparable (at least in a qualitative manner) in both space (i.e. across areas or national averages) and time (i.e. over temporal bins of 4 years) by calculating **relative proportions**: *i.e. for each area we can calculate the relative percentage of butterfly seen that were of a given type*. We will do this with pre-processing, calculating some national-level statisticsics in advance (uising the software in this repo), and uploading these (csv) tables and basemap raster (tif) to carto.
 
 Aggregated, this data should show 1) how relative abundance changes in space, and 2) if changes in relative abundance have occurred in time (during the last 16 years of EurLST data for which we will construct co-temporal analysis). We will also show for the area averaged abundance the temperature anomaly detected from EurLST over this time.
-
 
 Features to note:
 * Observer effect: A strong country dependence is evident in the data, which relates to prevalence of observers in different countries. These raw data  mainly reflect where observers are, and so must be turned in to relative abundance before comparing in time and space.
 * Variability: (In temperature data) we will try to minimise this volatility by presenting data in 4-year blocks. This will also help with scarcity of butterfly observations, and the considerable size of the EurLST data.
 * Trends: Actual trends in population range may occur with changes in climate, as insects respond rapidly to environmental change. The data may indeed reflect this, but we should note the qualitative nature of this association due to the limits of interpreting these data. The trends may be distinct for butterflies that migrate vs those which do not (we have selected both types).
+
+
+#### Relative abundance *vs.* counts
+ If a given area shows 10 observations (10 counts), 5 of butterfly type 1, 3 of butterfly type 2, and 2 of butterfly type 3, then the relative abundance is 50%, 30% and 20% respectively. Doing this will enable us to generalise over time and space, despite the widely different sampling frequency. Therefore only difference a higher-sampling frequency will have, is to increase the accuracy of the estimate.
+We have calculated a table of national-level statistics with count per species over a four-year-period. These should be converted to relative abandance in the front-end, depending on what species a user is interested in.
+
 
 ## Data
 
@@ -55,16 +58,15 @@ We will use EuroLST as high-resolution temperature base maps. Uncompressed these
 
 ### Creation of National-level statistics table
 
-** IN PROGRESS **
+To create a summary table that respond rapidly we should pre-calculate the national-level statistics.
+National statistics for the EUROLST data and butterflies needs to be calculated separately, and then aggregated, as they are two different problems:
 
-To create widgets that respond rapidly we should pre-calculate the national-level statistics. I intend the table to roughly have the following format:
+1. National statistics over EuroLST data:
+  - this is a vector to raster operation (subsetting and aggregating a raster by a vector). We have created a python 3.6 program to do this: `./eurolst_process/gen_national_table.py` which will produce a csv file as output.
+  Note, we are only using a small subset of European and Scandinavian countries, as this project is a demo only, rather than a fully-featured tool.
 
-
- Country_code     | Year_group     | EuroLST| species_1| species_2
-------------- | ------------- | ------------- | -------------
-ENG      | 2000       | 0.80 | 1000 | 300
-ENG      | 2004       | 0.95 | 1100 | 310
-
+2. National statistics over GBIF data:
+  - This is a vector to vector operation (identify intersecting points within a national polygon).
 
 The table will be uploaded to Carto. Note, the values will be in counts, and must be converted to
 relative abundance on the front-end, based on the species the user has requested. (i.e. if only two species are requested then relative abundance would be calculated, e.g. for species_1 as relAbundanceSpecies1=species_1/(speces_1 + species_2) * 100.
