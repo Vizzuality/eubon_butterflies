@@ -37,40 +37,6 @@ We will use observations of several different butterfly species, [prepared and l
 * [Apatura ilia Denis & Schiffermüller, 1775](http://www.gbif.org/species/8138711) taxonomy code 8138711, category 7 in the Carto table
 * [Apatura iris Linnaeus, 1758](http://www.gbif.org/species/5131910) taxonomy code 5131910, category 8 in the Carto table
 
-
-#### Preparing the butterfly observation data for Carto upload
-
-Using the GBIF.org website, you can search for data by species occurrence, and download, in csv format, all observations relevant to the European region. Sample data are present in this repo in the GBIF folder.
-These raw data contain excessive information for our purposes, and since we need to ensure the data are optimised for size, we will reduce each entry down to simply decimallatitude, decimallongitude, date, year integer, and a category number to indicate species (see list above).
-
-This preparation is done by running the `prepare_gbif.py` script with a list of raw data files. To do this, `cd` to the GBIF_data folder, place any additional csv files downloaded from GBIF in that location, and run `python prepare_gbif.py *.csv`. This should produce `output.csv` which contains minified data from all input files.
-
-**Note:** if you are adding a new species, not in the above list, you will need to add its scientific name and a unique category value (integer) to associate with it in the python dictionary in `prepare_gbif.py`.
-
-### EuroLST (base-map data)
-
-We will use EuroLST as high-resolution temperature base maps. Uncompressed these data are  ~750mb, which is too large for uploading to Carto to use as a tile server. We have created a simple script to reduce the file size in `eurolst_process/main.py`. (*This software needs improvement, as is currently slow.*)
-
-** Procedure is as follows**
-
-* Remap values between 1--255, setting 0 as the missing value. and convert data-type to 8-bit integers.
-* Add LZW compression.
-
-### Creation of National-level statistics table
-
-To create a summary table that respond rapidly we should pre-calculate the national-level statistics.
-National statistics for the EUROLST data and butterflies needs to be calculated separately, and then aggregated, as they are two different problems:
-
-1. National statistics over EuroLST data:
-  - this is a vector to raster operation (subsetting and aggregating a raster by a vector). We have created a python 3.6 program to do this: `./eurolst_process/gen_national_table.py` which will produce a csv file as output.
-  Note, we are only using a small subset of European and Scandinavian countries, as this project is a demo only, rather than a fully-featured tool.
-
-2. National statistics over GBIF data:
-  - This is a vector to vector operation (identify intersecting points within a national polygon).
-
-The table will be uploaded to Carto. Note, the values will be in counts, and must be converted to
-relative abundance on the front-end, based on the species the user has requested. (i.e. if only two species are requested then relative abundance would be calculated, e.g. for species_1 as relAbundanceSpecies1=species_1/(speces_1 + species_2) * 100.
-
 # visualisation components
 
 The components of this visualisation are:
@@ -83,7 +49,7 @@ The components of this visualisation are:
   * Country-level relative abundance of observations over time (2000-2004, 2005-2008, 2009-2012, 2013-2016) per species, and also averages over the EuroLST data per country for the same times.
 1. Map Widget (*low priority*):
   * User could click on the map and return a widget displaying relative abundance of a given species over a buffered area.
-1. Feed of most recent butterfly observations in GBIF database (*low priority, and maybe not needed*):
+1. Feed of most recent butterfly observations in GBIF database (*low priority, and probably not needed*):
   * Using the RESTFUL API of GBIF, we can request butterfly data for the species we desire, over Europe,
   which contains photos, and display the most recent observations only, to assist in building the narrative of this being a project based in citizen science.
 
@@ -95,7 +61,402 @@ We have created a small prototype version of a map using Carto.js to expose butt
 
 * Python server: cd into `./simple_server` and execute `./start.sh`. The map should be viewable at [http://0.0.0.0:8000](http://0.0.0.0:8000). Alternativley, you can view a [version running on bl.ocks.org](http://bl.ocks.org/benlaken/9fc0db2e992a24267a5bc48936d9e926).
 
-## 2. Map Widget
+
+## 2. National Level Statistics
+
+For our use case, we have pre-processed the butterfly observations, and EUROLST
+raster data using national boundary shapefiles and produced summary statistics in
+simple JSON format which can be used to create a widget or summary plot. The results of
+this processing is below, and can be directly embedded into the website code.
+
+```bash
+iso3_to_name = {'BEL':'Belgium',
+                'GBR':'United Kingdom',
+                'DEU':'Germany',
+                'DNK':'Denmark',
+                'ITA':'Italy',
+                'ESP':'Spain',
+                'PRT':'Portugal',
+                'CHE':'Switzerland',
+                'SWE':'Sweden',
+                'NOR','Norway',
+                'FIN','Finland'}
+
+# Mean National temperature from EUROLST BIO01 data
+euroLST_bio01 = {'BEL': {'max': 12.2, 'mean': 10.03, 'min': 7.1},
+                 'CHE': {'max': 14.6, 'mean': 6.14, 'min': -9.7},
+                 'DEU': {'max': 12.5, 'mean': 8.98, 'min': -0.7},
+                 'DNK': {'max': 9.3, 'mean': 7.75, 'min': 6.6},
+                 'ESP': {'max': 22.6, 'mean': 16.08, 'min': -0.8},
+                 'FIN': {'max': 5.4, 'mean': -0.18, 'min': -5.8},
+                 'GBR': {'max': 12.6, 'mean': 8.56, 'min': 2.5},
+                 'ITA': {'max': 21.4, 'mean': 13.98, 'min': -9.9},
+                 'NOR': {'max': 8.0, 'mean': 0.09, 'min': -8.4},
+                 'PRT': {'max': 21.9, 'mean': 17.2, 'min': 10.9},
+                 'SWE': {'max': 8.7, 'mean': 1.27, 'min': -8.8}}
+
+
+# Butterfly Counts per-year group, per-country, per-species
+butterfly_obs = {'2000_2003': {'BEL': {'S1': 13602,
+                                       'S2': 8369,
+                                       'S3': 8269,
+                                       'S4': 0,
+                                       'S5': 8791,
+                                       'S6': 6038,
+                                       'S7': 0,
+                                       'S8': 5},
+                               'CHE': {'S1': 1514,
+                                       'S2': 2540,
+                                       'S3': 974,
+                                       'S4': 0,
+                                       'S5': 1859,
+                                       'S6': 385,
+                                       'S7': 22,
+                                       'S8': 96},
+                               'DEU': {'S1': 241,
+                                       'S2': 297,
+                                       'S3': 214,
+                                       'S4': 0,
+                                       'S5': 181,
+                                       'S6': 125,
+                                       'S7': 5,
+                                       'S8': 15},
+                               'DNK': {'S1': 77,
+                                       'S2': 6,
+                                       'S3': 21,
+                                       'S4': 2,
+                                       'S5': 195,
+                                       'S6': 188,
+                                       'S7': 0,
+                                       'S8': 32},
+                               'ESP': {'S1': 0,
+                                       'S2': 13,
+                                       'S3': 3,
+                                       'S4': 0,
+                                       'S5': 3,
+                                       'S6': 0,
+                                       'S7': 1,
+                                       'S8': 1},
+                               'FIN': {'S1': 930,
+                                       'S2': 2279,
+                                       'S3': 283,
+                                       'S4': 2,
+                                       'S5': 493,
+                                       'S6': 106,
+                                       'S7': 3,
+                                       'S8': 39},
+                               'GBR': {'S1': 4135,
+                                       'S2': 2668,
+                                       'S3': 4129,
+                                       'S4': 0,
+                                       'S5': 2579,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 3},
+                               'ITA': {'S1': 8,
+                                       'S2': 12,
+                                       'S3': 13,
+                                       'S4': 0,
+                                       'S5': 13,
+                                       'S6': 0,
+                                       'S7': 1,
+                                       'S8': 1},
+                               'NOR': {'S1': 42,
+                                       'S2': 55,
+                                       'S3': 9,
+                                       'S4': 0,
+                                       'S5': 32,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'PRT': {'S1': 0,
+                                       'S2': 1,
+                                       'S3': 7,
+                                       'S4': 0,
+                                       'S5': 13,
+                                       'S6': 0,
+                                       'S7': 1,
+                                       'S8': 0},
+                               'SWE': {'S1': 532,
+                                       'S2': 1196,
+                                       'S3': 670,
+                                       'S4': 0,
+                                       'S5': 38,
+                                       'S6': 93,
+                                       'S7': 0,
+                                       'S8': 24}},
+                 '2004_2007': {'BEL': {'S1': 27260,
+                                       'S2': 14999,
+                                       'S3': 19407,
+                                       'S4': 0,
+                                       'S5': 8703,
+                                       'S6': 4668,
+                                       'S7': 0,
+                                       'S8': 30},
+                               'CHE': {'S1': 2129,
+                                       'S2': 2454,
+                                       'S3': 1561,
+                                       'S4': 0,
+                                       'S5': 1817,
+                                       'S6': 422,
+                                       'S7': 53,
+                                       'S8': 203},
+                               'DEU': {'S1': 271,
+                                       'S2': 347,
+                                       'S3': 281,
+                                       'S4': 0,
+                                       'S5': 132,
+                                       'S6': 156,
+                                       'S7': 14,
+                                       'S8': 15},
+                               'DNK': {'S1': 1234,
+                                       'S2': 379,
+                                       'S3': 330,
+                                       'S4': 1,
+                                       'S5': 715,
+                                       'S6': 410,
+                                       'S7': 0,
+                                       'S8': 98},
+                               'ESP': {'S1': 0,
+                                       'S2': 6,
+                                       'S3': 1,
+                                       'S4': 0,
+                                       'S5': 4,
+                                       'S6': 0,
+                                       'S7': 2,
+                                       'S8': 0},
+                               'FIN': {'S1': 1367,
+                                       'S2': 3038,
+                                       'S3': 494,
+                                       'S4': 19,
+                                       'S5': 722,
+                                       'S6': 397,
+                                       'S7': 76,
+                                       'S8': 209},
+                               'GBR': {'S1': 6490,
+                                       'S2': 4132,
+                                       'S3': 6292,
+                                       'S4': 0,
+                                       'S5': 2453,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 23},
+                               'ITA': {'S1': 18,
+                                       'S2': 17,
+                                       'S3': 37,
+                                       'S4': 0,
+                                       'S5': 29,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 6},
+                               'NOR': {'S1': 130,
+                                       'S2': 80,
+                                       'S3': 26,
+                                       'S4': 0,
+                                       'S5': 70,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'PRT': {'S1': 0,
+                                       'S2': 0,
+                                       'S3': 0,
+                                       'S4': 0,
+                                       'S5': 2,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'SWE': {'S1': 4641,
+                                       'S2': 7565,
+                                       'S3': 3623,
+                                       'S4': 18,
+                                       'S5': 53,
+                                       'S6': 796,
+                                       'S7': 0,
+                                       'S8': 135}},
+                 '2008_2011': {'BEL': {'S1': 25500,
+                                       'S2': 16559,
+                                       'S3': 13734,
+                                       'S4': 0,
+                                       'S5': 16163,
+                                       'S6': 7834,
+                                       'S7': 3,
+                                       'S8': 89},
+                               'CHE': {'S1': 941,
+                                       'S2': 1509,
+                                       'S3': 888,
+                                       'S4': 0,
+                                       'S5': 2852,
+                                       'S6': 539,
+                                       'S7': 29,
+                                       'S8': 112},
+                               'DEU': {'S1': 3057,
+                                       'S2': 2713,
+                                       'S3': 2323,
+                                       'S4': 0,
+                                       'S5': 2542,
+                                       'S6': 1398,
+                                       'S7': 116,
+                                       'S8': 190},
+                               'DNK': {'S1': 406,
+                                       'S2': 382,
+                                       'S3': 292,
+                                       'S4': 1,
+                                       'S5': 257,
+                                       'S6': 386,
+                                       'S7': 1,
+                                       'S8': 118},
+                               'ESP': {'S1': 59,
+                                       'S2': 40,
+                                       'S3': 47,
+                                       'S4': 0,
+                                       'S5': 42,
+                                       'S6': 4,
+                                       'S7': 4,
+                                       'S8': 9},
+                               'FIN': {'S1': 3341,
+                                       'S2': 6020,
+                                       'S3': 584,
+                                       'S4': 14,
+                                       'S5': 1902,
+                                       'S6': 690,
+                                       'S7': 344,
+                                       'S8': 360},
+                               'GBR': {'S1': 5726,
+                                       'S2': 4978,
+                                       'S3': 7769,
+                                       'S4': 0,
+                                       'S5': 3129,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 47},
+                               'ITA': {'S1': 68,
+                                       'S2': 43,
+                                       'S3': 53,
+                                       'S4': 0,
+                                       'S5': 115,
+                                       'S6': 1,
+                                       'S7': 0,
+                                       'S8': 2},
+                               'NOR': {'S1': 1220,
+                                       'S2': 1439,
+                                       'S3': 328,
+                                       'S4': 0,
+                                       'S5': 518,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'PRT': {'S1': 0,
+                                       'S2': 2,
+                                       'S3': 3,
+                                       'S4': 0,
+                                       'S5': 1,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'SWE': {'S1': 4622,
+                                       'S2': 8403,
+                                       'S3': 2926,
+                                       'S4': 48,
+                                       'S5': 98,
+                                       'S6': 1881,
+                                       'S7': 14,
+                                       'S8': 340}},
+                 '2012_2015': {'BEL': {'S1': 29679,
+                                       'S2': 15382,
+                                       'S3': 10436,
+                                       'S4': 5,
+                                       'S5': 6365,
+                                       'S6': 11263,
+                                       'S7': 0,
+                                       'S8': 197},
+                               'CHE': {'S1': 21,
+                                       'S2': 2,
+                                       'S3': 1,
+                                       'S4': 0,
+                                       'S5': 9,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'DEU': {'S1': 8104,
+                                       'S2': 5519,
+                                       'S3': 3501,
+                                       'S4': 11,
+                                       'S5': 2279,
+                                       'S6': 3692,
+                                       'S7': 340,
+                                       'S8': 246},
+                               'DNK': {'S1': 888,
+                                       'S2': 1578,
+                                       'S3': 866,
+                                       'S4': 260,
+                                       'S5': 291,
+                                       'S6': 429,
+                                       'S7': 57,
+                                       'S8': 212},
+                               'ESP': {'S1': 471,
+                                       'S2': 130,
+                                       'S3': 427,
+                                       'S4': 0,
+                                       'S5': 479,
+                                       'S6': 26,
+                                       'S7': 32,
+                                       'S8': 14},
+                               'FIN': {'S1': 1824,
+                                       'S2': 3763,
+                                       'S3': 141,
+                                       'S4': 1312,
+                                       'S5': 582,
+                                       'S6': 929,
+                                       'S7': 385,
+                                       'S8': 324},
+                               'GBR': {'S1': 6606,
+                                       'S2': 5137,
+                                       'S3': 9295,
+                                       'S4': 12,
+                                       'S5': 2068,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 71},
+                               'ITA': {'S1': 95,
+                                       'S2': 8,
+                                       'S3': 18,
+                                       'S4': 0,
+                                       'S5': 41,
+                                       'S6': 0,
+                                       'S7': 7,
+                                       'S8': 1},
+                               'NOR': {'S1': 1667,
+                                       'S2': 1245,
+                                       'S3': 240,
+                                       'S4': 26,
+                                       'S5': 541,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'PRT': {'S1': 9,
+                                       'S2': 0,
+                                       'S3': 5,
+                                       'S4': 0,
+                                       'S5': 4,
+                                       'S6': 0,
+                                       'S7': 0,
+                                       'S8': 0},
+                               'SWE': {'S1': 3751,
+                                       'S2': 5415,
+                                       'S3': 1479,
+                                       'S4': 1040,
+                                       'S5': 548,
+                                       'S6': 1207,
+                                       'S7': 2,
+                                       'S8': 551}}}
+
+```
+
+To reproduce these data run `python ./eurolst_process/gen_national_table.py` and
+`python ./GBIF_data/national_summary_stats.py`.
+
+
+## 3. Map Widget (low priority)
 
 If the decimal latitude and longitude can be passed to ST_POINT() function, with a given buffer (in decimal degrees), the following API call will return JSON containing the counts per species seen over a given area in a given time-period, which can be used to create a simple widget for display.
 
@@ -140,46 +501,11 @@ This will return JSON in the form of:
 
 The count, per species should be converted to percentages before display. Returning temperature over the same area is more difficult, as the raster uploaded to Carto needs to be minified prior to use. Therefore EuroLST values will probably only be given at a national level (and will be precalculated).
 
-## 3. National Level Statistics
-
-For our use case, we can pre-process the butterfly observations, and EUROLST
-raster data using national boundary shapefiles and produce summary statistics in
-simple json which can be used to create a widget or summary plot. The results of
-this processing is below.
-
-```bash
-iso3_to_name = {'BEL':'Belgium',
-                'GBR':'United Kingdom',
-                'DEU':'Germany',
-                'DNK':'Denmark',
-                'ITA':'Italy',
-                'ESP':'Spain',
-                'PRT':'Portugal',
-                'CHE':'Switzerland',
-                'SWE':'Sweden',
-                'NOR','Norway',
-                'FIN','Finland'}
-
-# Mean National temperature from EUROLST BIO01 data
-euroLST_bio01 = {'BEL': {'max': 12.2, 'mean': 10.03, 'min': 7.1},
-                 'CHE': {'max': 14.6, 'mean': 6.14, 'min': -9.7},
-                 'DEU': {'max': 12.5, 'mean': 8.98, 'min': -0.7},
-                 'DNK': {'max': 9.3, 'mean': 7.75, 'min': 6.6},
-                 'ESP': {'max': 22.6, 'mean': 16.08, 'min': -0.8},
-                 'FIN': {'max': 5.4, 'mean': -0.18, 'min': -5.8},
-                 'GBR': {'max': 12.6, 'mean': 8.56, 'min': 2.5},
-                 'ITA': {'max': 21.4, 'mean': 13.98, 'min': -9.9},
-                 'NOR': {'max': 8.0, 'mean': 0.09, 'min': -8.4},
-                 'PRT': {'max': 21.9, 'mean': 17.2, 'min': 10.9},
-                 'SWE': {'max': 8.7, 'mean': 1.27, 'min': -8.8}}
-
-```
-
 
 
 ## 4. Recent butterfly observation Feed
 
-Questionable as to whether or not this adds value...
+Questionable as to whether or not this adds value. Leaving the details incase we want to add this in the future.
 
 If we wish to create a feed showing recent observations (with photos) of specific species sightings uploaded to GBIF we can do that via the GBIF API. We can construct requests as follows.
 
@@ -238,3 +564,38 @@ http://www.gbif.org/occurrence/1415672278/fragment
 Note, we are only returning observations that contain images, as these will be displayed on the website, as a means of highlighting the citizen science narrative.
 
 Also, may be of use, it seems the EUBON website is digesting the same info at [this website](http://api.eurogeoss-broker.eu/eu-bon-portal). It may be helpful to look at the website code and see how they call the API to extract the records first.
+
+
+
+#### Preparing the butterfly observation data for Carto upload
+
+Using the GBIF.org website, you can search for data by species occurrence, and download, in csv format, all observations relevant to the European region. Sample data are present in this repo in the GBIF folder.
+These raw data contain excessive information for our purposes, and since we need to ensure the data are optimised for size, we will reduce each entry down to simply decimallatitude, decimallongitude, date, year integer, and a category number to indicate species (see list above).
+
+This preparation is done by running the `prepare_gbif.py` script with a list of raw data files. To do this, `cd` to the GBIF_data folder, place any additional csv files downloaded from GBIF in that location, and run `python prepare_gbif.py *.csv`. This should produce `output.csv` which contains minified data from all input files.
+
+**Note:** if you are adding a new species, not in the above list, you will need to add its scientific name and a unique category value (integer) to associate with it in the python dictionary in `prepare_gbif.py`.
+
+### EuroLST (base-map data)
+
+We will use EuroLST as high-resolution temperature base maps. Uncompressed these data are  ~750mb, which is too large for uploading to Carto to use as a tile server. We have created a simple script to reduce the file size in `eurolst_process/main.py`. (*This software needs improvement, as is currently slow.*)
+
+** Procedure is as follows**
+
+* Remap values between 1--255, setting 0 as the missing value. and convert data-type to 8-bit integers.
+* Add LZW compression.
+
+### Creation of National-level statistics table
+
+To create a summary table that respond rapidly we should pre-calculate the national-level statistics.
+National statistics for the EUROLST data and butterflies needs to be calculated separately, and then aggregated, as they are two different problems:
+
+1. National statistics over EuroLST data:
+  - this is a vector to raster operation (subsetting and aggregating a raster by a vector). We have created a python 3.6 program to do this: `./eurolst_process/gen_national_table.py` which will produce a csv file as output.
+  Note, we are only using a small subset of European and Scandinavian countries, as this project is a demo only, rather than a fully-featured tool.
+
+2. National statistics over GBIF data:
+  - This is a vector to vector operation (identify intersecting points within a national polygon).
+
+The table will be uploaded to Carto. Note, the values will be in counts, and must be converted to
+relative abundance on the front-end, based on the species the user has requested. (i.e. if only two species are requested then relative abundance would be calculated, e.g. for species_1 as relAbundanceSpecies1=species_1/(speces_1 + species_2) * 100.
