@@ -20,12 +20,14 @@ eurolst_multiplier = {'bio01': 10, 'bio04':100, 'bio05':10, 'bio06':10,
 
 def unpack_result(d, country):
     """Extract dictionary results from rasterstats zonal_stats output and
-    return in csv format"""
+    return in csv format. Division by a magnitude in the eurolst_multiplier
+    dictionary is due to the data packing, and based on values from the website
+    link given above."""
     count = d['count']
-    max = d['max'] * eurolst_multiplier.get(eurolst_key, 1)
-    mean = d['mean'] * eurolst_multiplier.get(eurolst_key, 1)
+    max = d['max'] / eurolst_multiplier.get(eurolst_key, 1)
+    mean = d['mean'] / eurolst_multiplier.get(eurolst_key, 1)
     mean = float('{0:4.2f}'.format(mean))
-    min = d['min'] * eurolst_multiplier.get(eurolst_key, 1)
+    min = d['min'] / eurolst_multiplier.get(eurolst_key, 1)
     name = country['NAME'].values[0]
     iso3 = country['ISO3'].values[0]
     return [iso3, name, min, mean, max]
@@ -54,3 +56,15 @@ df = pd.DataFrame(national_stats, columns=['ISO3','NAME', eurolst_key+'_MIN',
                                            eurolst_key+'_MEAN', eurolst_key+'_MAX'])
 df.to_csv('./national_stats.csv', index=False)
 print("Program finished normally.")
+
+
+# --- To Extract these data in a JSON based structure ----
+from pprint import pprint
+nstats = pd.read_csv('./eurolst_process/national_stats.csv')
+dic = {}
+for iso3 in nstats.ISO3:
+    minval = float('{0:4.2f}'.format(nstats[nstats.ISO3 == iso3].bio01_MIN.values[0]))
+    maxval = float('{0:4.2f}'.format(nstats[nstats.ISO3 == iso3].bio01_MAX.values[0]))
+    meanval = float('{0:4.2f}'.format(nstats[nstats.ISO3 == iso3].bio01_MEAN.values[0]))
+    dic[iso3] = {'min': minval, 'mean': meanval,'max': maxval}
+pprint(dic)

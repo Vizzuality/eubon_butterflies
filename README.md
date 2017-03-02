@@ -78,15 +78,14 @@ The components of this visualisation are:
 1. Map, with base layer of minified EuroLST data, and over-plotted butterfly point observations.
   * EuroLST data is too large to display in full, and butterfly data is too patchy display at high-frequency.
   Thus 4 year temperature anomalies, with 4-year groupings of butterfly observations could work well.
-  Covering periods of 200-2004, 2005-2008, 2008-2012, 2012-206.
-1. Map Widget:
-  * User clicks on the map can return a widget displaying relative abundance of a given species over a buffered area, or nation.
-1. Feed of most recent observations in GBIF database for relevant butterfly species:
-  * Using the RESTFUL API of GBIF, we can request butterfly data for the species we desire, over Europe,
-  which contains photos, and display the most recent observations only, to assist in building the narrative of this being a project based in citizen science.
+  Covering periods of 200-2003, 2004-2007, 2008-2011, 2012-2015.
 1. National level summary statistics displayed as a widget.
   * Country-level relative abundance of observations over time (2000-2004, 2005-2008, 2009-2012, 2013-2016) per species, and also averages over the EuroLST data per country for the same times.
-
+1. Map Widget (*low priority*):
+  * User could click on the map and return a widget displaying relative abundance of a given species over a buffered area.
+1. Feed of most recent butterfly observations in GBIF database (*low priority, and maybe not needed*):
+  * Using the RESTFUL API of GBIF, we can request butterfly data for the species we desire, over Europe,
+  which contains photos, and display the most recent observations only, to assist in building the narrative of this being a project based in citizen science.
 
 ## 1. Map
 
@@ -141,8 +140,46 @@ This will return JSON in the form of:
 
 The count, per species should be converted to percentages before display. Returning temperature over the same area is more difficult, as the raster uploaded to Carto needs to be minified prior to use. Therefore EuroLST values will probably only be given at a national level (and will be precalculated).
 
+## 3. National Level Statistics
 
-## 3. Recent butterfly observation Feed
+For our use case, we can pre-process the butterfly observations, and EUROLST
+raster data using national boundary shapefiles and produce summary statistics in
+simple json which can be used to create a widget or summary plot. The results of
+this processing is below.
+
+```bash
+iso3_to_name = {'BEL':'Belgium',
+                'GBR':'United Kingdom',
+                'DEU':'Germany',
+                'DNK':'Denmark',
+                'ITA':'Italy',
+                'ESP':'Spain',
+                'PRT':'Portugal',
+                'CHE':'Switzerland',
+                'SWE':'Sweden',
+                'NOR','Norway',
+                'FIN','Finland'}
+
+# Mean National temperature from EUROLST BIO01 data
+euroLST_bio01 = {'BEL': {'max': 12.2, 'mean': 10.03, 'min': 7.1},
+                 'CHE': {'max': 14.6, 'mean': 6.14, 'min': -9.7},
+                 'DEU': {'max': 12.5, 'mean': 8.98, 'min': -0.7},
+                 'DNK': {'max': 9.3, 'mean': 7.75, 'min': 6.6},
+                 'ESP': {'max': 22.6, 'mean': 16.08, 'min': -0.8},
+                 'FIN': {'max': 5.4, 'mean': -0.18, 'min': -5.8},
+                 'GBR': {'max': 12.6, 'mean': 8.56, 'min': 2.5},
+                 'ITA': {'max': 21.4, 'mean': 13.98, 'min': -9.9},
+                 'NOR': {'max': 8.0, 'mean': 0.09, 'min': -8.4},
+                 'PRT': {'max': 21.9, 'mean': 17.2, 'min': 10.9},
+                 'SWE': {'max': 8.7, 'mean': 1.27, 'min': -8.8}}
+
+```
+
+
+
+## 4. Recent butterfly observation Feed
+
+Questionable as to whether or not this adds value...
 
 If we wish to create a feed showing recent observations (with photos) of specific species sightings uploaded to GBIF we can do that via the GBIF API. We can construct requests as follows.
 
@@ -201,17 +238,3 @@ http://www.gbif.org/occurrence/1415672278/fragment
 Note, we are only returning observations that contain images, as these will be displayed on the website, as a means of highlighting the citizen science narrative.
 
 Also, may be of use, it seems the EUBON website is digesting the same info at [this website](http://api.eurogeoss-broker.eu/eu-bon-portal). It may be helpful to look at the website code and see how they call the API to extract the records first.
-
-## 4. National Level Statistics
-
-* The [GBIF API](http://www.gbif.org/developer/occurrence#p_taxonKey) can create summary Statistics per country using the *Occurrence Metrics* feature.
-
-* Alternatively, and better for our use case, we can make SQL queries to the data in Carto, and return statistics over specified country geometries, for both the butterfly observations, and the EuroLST basemaps which we will upload in a single table.
-
-** In Progress **
-
-
-
-## Stretch Goal: Extending the visualisation with Species Distribution model raster layers
-
-There is a possibility to extend this visualisation by using the observations to create a derivative product in the form of a Species Distribution Model. While these have their own limitations and caveats, and would essentially be a more processed form of the data we are already presenting, it would have advantages in that it would more closely twine the temperature and species observation data, and create the appearance of a more consistent dataset. It is however more complicated to produce, and will take more time.
